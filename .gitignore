@@ -1,0 +1,24 @@
+# Node.js
+node_modules/
+.next/
+out/
+build/
+.vercel
+*.log
+.env*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db

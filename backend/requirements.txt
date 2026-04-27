@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+torch
+gymnasium
+pandas
+numpy
+yfinance
+python-multipart
+python-dotenv
