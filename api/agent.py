@@ -1,10 +1,7 @@
-import torch
-import torch.optim as optim
 import random
 import numpy as np
 from collections import deque
-import torch.nn.functional as F
-from model import QNetwork
+from model import NumPyQNetwork
 
 class DQNAgent:
     def __init__(self, state_size, action_size):
@@ -16,16 +13,13 @@ class DQNAgent:
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.model = QNetwork(state_size, action_size).to(self.device)
-        self.target_model = QNetwork(state_size, action_size).to(self.device)
+        self.model = NumPyQNetwork(state_size, action_size, learning_rate=self.learning_rate)
+        self.target_model = NumPyQNetwork(state_size, action_size, learning_rate=self.learning_rate)
         self.update_target_model()
-        
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def update_target_model(self):
-        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_model.set_weights(self.model.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -34,38 +28,45 @@ class DQNAgent:
         if train and np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         
-        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-        with torch.no_grad():
-            action_values = self.model(state)
-        return torch.argmax(action_values).item()
+        action_values = self.model.forward(state)
+        return np.argmax(action_values[0])
 
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
             return
         
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
-            state = torch.FloatTensor(state).to(self.device)
-            next_state = torch.FloatTensor(next_state).to(self.device)
+        
+        states = np.array([transition[0] for transition in minibatch])
+        actions = np.array([transition[1] for transition in minibatch])
+        rewards = np.array([transition[2] for transition in minibatch])
+        next_states = np.array([transition[3] for transition in minibatch])
+        dones = np.array([transition[4] for transition in minibatch])
+        
+        # Target values using target network
+        next_q_values = self.target_model.forward(next_states)
+        max_next_q = np.max(next_q_values, axis=1)
+        targets = rewards + self.gamma * max_next_q * (1 - dones)
+        
+        # Current predictions
+        q_values = self.model.forward(states)
+        
+        # Calculate gradients for MSE loss
+        d_out = np.zeros_like(q_values)
+        for i in range(batch_size):
+            d_out[i, actions[i]] = q_values[i, actions[i]] - targets[i]
             
-            target = reward
-            if not done:
-                target = (reward + self.gamma * torch.max(self.target_model(next_state.unsqueeze(0)).detach()).item())
-            
-            target_f = self.model(state.unsqueeze(0))
-            target_f[0][action] = target
-            
-            loss = F.mse_loss(self.model(state.unsqueeze(0)), target_f)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        self.model.backward(d_out)
             
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
     def save(self, name):
-        torch.save(self.model.state_dict(), name)
+        weights = self.model.get_weights()
+        np.savez(name, **weights)
 
     def load(self, name):
-        self.model.load_state_dict(torch.load(name, map_location=self.device))
+        weights_data = np.load(name)
+        weights_dict = {key: weights_data[key] for key in weights_data.files}
+        self.model.set_weights(weights_dict)
         self.update_target_model()

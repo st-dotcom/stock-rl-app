@@ -1,7 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import torch
 import os
 import json
 from utils import fetch_stock_data, preprocess_data
@@ -80,7 +79,7 @@ def run_training(ticker, episodes, window_size):
             print(f"Episode: {e}/{episodes}, Score: {total_reward}, Epsilon: {agent.epsilon:.2}")
             
         # モデルの保存
-        model_path = os.path.join(MODEL_DIR, f"{ticker}_dqn.pth")
+        model_path = os.path.join(MODEL_DIR, f"{ticker}_dqn.npz")
         agent.save(model_path)
         
         training_status[ticker] = {"status": "completed", "progress": 100, "model_path": model_path}
@@ -94,7 +93,7 @@ async def get_status(ticker: str):
 @app.get("/api/predict/{ticker}")
 async def predict_action(ticker: str):
     ticker = ticker.upper()
-    model_path = os.path.join(MODEL_DIR, f"{ticker}_dqn.pth")
+    model_path = os.path.join(MODEL_DIR, f"{ticker}_dqn.npz")
     
     if not os.path.exists(model_path):
         raise HTTPException(status_code=404, detail="Model not found. Please train first.")
