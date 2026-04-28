@@ -4,7 +4,7 @@ import axios from 'axios';
 import StockChart from '../components/StockChart';
 import { Search, Play, Activity, TrendingUp, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000');
 
 export default function Home() {
   const [ticker, setTicker] = useState('AAPL');

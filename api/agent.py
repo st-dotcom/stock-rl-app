@@ -3,7 +3,8 @@ import torch.optim as optim
 import random
 import numpy as np
 from collections import deque
-from .model import QNetwork
+import torch.nn.functional as F
+from model import QNetwork
 
 class DQNAgent:
     def __init__(self, state_size, action_size):

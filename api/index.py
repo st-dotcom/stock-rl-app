@@ -4,9 +4,9 @@ from pydantic import BaseModel
 import torch
 import os
 import json
-from .utils import fetch_stock_data, preprocess_data
-from .env import StockTradingEnv
-from .agent import DQNAgent
+from utils import fetch_stock_data, preprocess_data
+from env import StockTradingEnv
+from agent import DQNAgent
 
 app = FastAPI(title="Stock RL Trading API")
 
